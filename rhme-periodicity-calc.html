@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Radiation Medical Exam Periodicity Calculator</title>
+</head>
+<body>
+    <h1>Radiation Health Medical Exam</h1>
+    <h2>Periodicity Calculator</h2>
+    <label for="input-dob">Worker Date of Birth</label>
+    <input type="date" id="input-dob">
+    <br><br>
+    <label for="input-lastExam">Date of Last RMH Exam</label>
+    <input type="date" id="input-lastExam">
+    <br><br>
+    Worker's current age = <b id="output-age">__</b>. 
+    Age at last exam= <b id="output-exam-age">__</b>.
+    <br>
+    <label for="output-nextExam">Next Exam Due:</label>
+    <input type="text" id="output-nextExam" disabled size="30">
+    <br><br>
+    <p><i>Reference:</i>
+        <h4>NAVMED P-5055 Chapter 2-2, Feb 2011</h3>
+        2. Reexamination (RE). Personnel who are to continue in routine duties as radiation
+workers must have an ionizing RME, defined as a RE, as follows: Periodicity between
+examinations will not exceed 5 years up to age 50. After age 50, periodicity will not exceed
+every 2 years, e.g., an individual examined at age 46 would be re-examined at 51, an individual
+examined at age 47, 48, 49, or 50 would be re-examined at age 52. Beginning at age 60 the
+examination is required annually. The exam may be performed earlier than the required
+frequency to distribute medical examination workload evenly, or to combine the RE with a
+medical exam required for another purpose, or for any other reason. BUMED strongly
+encourages combining examinations whenever possible. The RE must be performed no later than
+the end of the month following the anniversary date (month and year) of the previous RME’s
+physical examination date, i.e., for an exam performed on 15 February 2005, the reexamination
+must be completed by 31 March 2010. When constrained by ship operating schedules, the
+examination is to be performed at the earliest opportunity
+    </p>
+
+    <p>
+        Copyright 2023 Christopher Rock.<br>
+        <GPL-3>Distributable under GNU GPLv3.</GPL-3>
+        <!--
+        This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3 of the License.
+        This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+        See <https://www.gnu.org/licenses/> for a copy of the GNU GLPv3 license.
+        -->
+    </p>
+
+</body>
+<script>
+    
+    // Returns current age (if today not given), or age on a given date
+    // dob and today are assumed to be Date objects
+    function getAge(dob, today = new Date()) {
+        // var dob = new Date(dob);
+        var age = today.getFullYear() - dob.getFullYear();
+        var m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+            age--;
+        }
+        return age;
+    }
+
+    function nextExamAddYears(lastExam, yearsToAdd){
+        var nextExam = new Date(lastExam)
+        nextExam.setFullYear(nextExam.getFullYear() + yearsToAdd)
+        // sets to the last day of the next month
+        nextExam.setMonth(nextExam.getMonth() + 2)
+        nextExam.setDate(0)
+        return nextExam
+    }
+
+    function nextExamAge(dob, ageForExam){
+        var nextExam = new Date(dob)
+        nextExam.setFullYear(nextExam.getFullYear() + ageForExam)
+        // sets to the last day of the next month
+        nextExam.setMonth(nextExam.getMonth() + 2)
+        nextExam.setDate(0)
+        return nextExam
+    }
+
+    function getNextExam(dob, lastExam) {
+        // Get age
+        age = getAge(dob, lastExam)
+        // If age < 47, 5 years
+        nextExam = nextExamAddYears(lastExam, 5)
+        ageIf:
+        if (age <= 46){
+            break ageIf //get out of if statement
+        }
+        // If age == 47, 48, 49, next exam @ age 52
+        else if ( (age == 47) || (age == 48) || (age == 49) ){
+            nextExam = nextExamAge(dob, 52)
+        }
+        // If age 50-58, next exam 2 years
+        else if ( (age >= 50) && (age <= 58) ){
+            nextExam = nextExamAddYears(lastExam, 2)
+        }
+        // If age 59, next exam at @ age 61
+        else if (age == 59){
+            nextExam = nextExamAge(dob, 61)
+        }
+        // If age >= 60, next exam 1 year
+        else if (age >= 60){
+            nextExam = nextExamAddYears(lastExam, 1)
+        }
+        // Should never get here
+        else{
+            throw "Age not correctly handled."
+        }
+
+        console.log("Next exam:", nextExam.toLocaleDateString('en-gb', { day:"numeric", month:"short", year:"numeric" }))
+        return nextExam
+
+    }
+
+    // add timezone support so that it shows current date in this timezone
+    Date.prototype.toDateInputValue = (function() {
+        var local = new Date(this)
+        local.setMinutes(this.getMinutes() - this.getTimezoneOffset())
+        return local.toJSON().slice(0,10)
+    });
+
+    // set date of last exam to be today by default
+    document.getElementById('input-lastExam').value = new Date().toDateInputValue()
+
+
+    // Handler called whenever either date is changed
+    const dateChangeHandler = function(e){
+        // Get DOB
+        dob = document.getElementById('input-dob').value
+        dobDate = new Date(dob)
+        // Get date of last exam
+        lastExam = document.getElementById('input-lastExam').value
+        lastExamDate = new Date(lastExam)
+        
+        // Update HTML for age and age at last exam
+        document.getElementById("output-age").innerHTML = getAge(dobDate)
+        document.getElementById("output-exam-age").innerHTML = getAge(dobDate, lastExamDate)
+
+        // Display next exam date
+        n = getNextExam(dobDate, lastExamDate)
+        z = n.toLocaleDateString('en-gb', { day:"numeric", month:"short", year:"numeric" }) 
+
+        // document.getElementById('output-nextExam').value = n.toDateString()
+        document.getElementById('output-nextExam').value = z
+    }
+
+    document.getElementById('input-dob').addEventListener('input', dateChangeHandler)
+    document.getElementById('input-lastExam').addEventListener('input', dateChangeHandler)
+    
+
+    // --------------------------------------------------------------------------------------
+    // A function for unit testing
+    function assert(condition, message) {
+        if (!condition) {
+            throw new Error(message || "Assertion failed");
+        }
+    }
+    
+    // Test that our calculations are correct
+
+    console.log("running unit tests...")
+
+    // Leap Year
+    assert(
+        getNextExam(
+            new Date("22-Jan-1979"), // DOB
+            new Date("1-Jan-2023")   // Last Exam
+        ).toLocaleDateString('en-gb', { day:"numeric", month:"short", year:"numeric" })
+        == "29 Feb 2028"
+    )
+
+    // 35 year old on Leap Year
+    assert(
+        getNextExam(
+            new Date("1-Jan-2000"), // DOB
+            new Date("1-Jan-2035")   // Last Exam
+        ).toLocaleDateString('en-gb', { day:"numeric", month:"short", year:"numeric" })
+        == "29 Feb 2040"
+    )
+
+    // 47 year old (again leap year!)
+    assert(
+        getNextExam(
+            new Date("15-Jul-2000"), // DOB
+            new Date("1-Jan-2047")   // Last Exam
+        ).toLocaleDateString('en-gb', { day:"numeric", month:"short", year:"numeric" })
+        == "29 Feb 2052"
+    )
+
+    // 47 year old not leap year
+    assert(
+        getNextExam(
+            new Date("15-Jul-2000"), // DOB
+            new Date("1-Dec-2047")   // Last Exam
+        ).toLocaleDateString('en-gb', { day:"numeric", month:"short", year:"numeric" })
+        == "31 Aug 2052"
+    )
+
+    // 52 year old
+    assert(
+        getNextExam(
+            new Date("15-Jul-2000"), // DOB
+            new Date("1-Sep-2052")   // Last Exam
+        ).toLocaleDateString('en-gb', { day:"numeric", month:"short", year:"numeric" })
+        == "31 Oct 2054"
+    )
+    
+    // 59 year old
+    assert(
+        getNextExam(
+            new Date("15-Jul-2000"), // DOB
+            new Date("1-Sep-2059")   // Last Exam
+        ).toLocaleDateString('en-gb', { day:"numeric", month:"short", year:"numeric" })
+        == "31 Aug 2061"
+    )
+
+    // 61 year old
+    assert(
+        getNextExam(
+            new Date("15-Jul-2000"), // DOB
+            new Date("1-Sep-2061")   // Last Exam
+        ).toLocaleDateString('en-gb', { day:"numeric", month:"short", year:"numeric" })
+        == "31 Oct 2062"
+    )
+
+
+
+
+</script>
+
+</html>
